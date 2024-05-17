@@ -316,6 +316,77 @@ Output :
 - ping harkonen.it09.com
 ![harkonen](foto/harkonen.jpeg)
 
+# Soal 6-10
+6.  Vladimir Harkonen memerintahkan setiap worker(harkonen) PHP, untuk melakukan konfigurasi virtual host untuk website berikut dengan menggunakan php 7.3
+
+Sebelum mengerjakan perlu untuk melakukan setup terlebih dahulu pada seluruh PHP Worker. 
+
+Setup worker PHP (Rabban, Vladimir, Feyd) :
+```
+echo nameserver 10.68.3.2 > /etc/resolv.conf
+
+apt-get update
+apt-get install nginx -y
+apt-get install lynx -y
+apt-get install php php-fpm -y
+apt-get install wget -y
+apt-get install unzip -y
+service nginx start
+service php7.3-fpm start
+
+service nginx start
+service php7.3-fpm start
+```
+
+Jika sudah, silahkan untuk melakukan konfigurasi tambahan sebagai berikut untuk melakukan download dan unzip menggunakan command wget :
+
+```
+wget -O '/var/www/harkonen.it09.com' 'https://drive.google.com/file/d/1lmnXJUbyx1JDt2OA5z_1dEowxozfkn30&export=download'
+unzip -o /var/www/harkonen.it09.com -d /var/www/
+rm /var/www/harkonen.it09.com
+mv /var/www/modul-3 /var/www/harkonen.it09.com
+```
+
+Kemudian cd, dan masukan ini ke shell :
+```
+cp /etc/nginx/sites-available/default /etc/nginx/sites-available/harkonen.it09.com
+ln -s /etc/nginx/sites-available/harkonen.it09.com /etc/nginx/sites-enabled/
+rm /etc/nginx/sites-enabled/default
+
+echo 'server {
+     listen 80;
+     server_name _;
+
+     root /var/www/harkonen.it09.com;
+     index index.php index.html index.htm;
+
+     location / {
+         try_files $uri $uri/ /index.php?$query_string;
+     }
+
+     location ~ \.php$ {
+         include snippets/fastcgi-php.conf;
+         fastcgi_pass unix:/run/php/php7.3-fpm.sock;
+         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+         include fastcgi_params;
+     }
+ }' > /etc/nginx/sites-available/harkonen.it09.com
+
+ service nginx restart
+```
+Output : 
+
+- saat `wget` drive :
+
+![wget](image.png)
+
+
+- `lynx localhost` Worker PHP :
+
+![61](foto/61.png)
+
+![62](foto/62.png)
+
 
 
 
