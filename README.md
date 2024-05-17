@@ -55,27 +55,27 @@ iface eth4 inet static
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.1.3
+	address 10.68.1.5
 	netmask 255.255.255.0
-	gateway 10.68.1.0
+	gateway 10.68.1.1
 ```
 
 ### Rabban 
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.1.2
+	address 10.68.1.4
 	netmask 255.255.255.0
-	gateway 10.68.1.0
+	gateway 10.68.1.1
 ```    
 
 ### Vladimir
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.1.1
+	address 10.68.1.3
 	netmask 255.255.255.0
-	gateway 10.68.1.0
+	gateway 10.68.1.1
 ```
 
 ### Irulan
@@ -100,7 +100,7 @@ iface eth0 inet static
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.4.2
+	address 10.68.4.3
 	netmask 255.255.255.0
 	gateway 10.68.4.1
 ```    
@@ -109,7 +109,7 @@ iface eth0 inet static
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.4.3
+	address 10.68.4.2
 	netmask 255.255.255.0
 	gateway 10.68.4.1
 ```
@@ -118,27 +118,27 @@ iface eth0 inet static
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.2.3
+	address 10.68.2.5
 	netmask 255.255.255.0
-	gateway 10.68.2.0
+	gateway 10.68.2.1
 ```
 
 ### Duncan
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.2.2
+	address 10.68.2.4
 	netmask 255.255.255.0
-	gateway 10.68.2.0
+	gateway 10.68.2.1
 ```
 
 ### Leto
 ```
 auto eth0
 iface eth0 inet static
-	address 10.68.2.1
+	address 10.68.2.3
 	netmask 255.255.255.0
-	gateway 10.68.2.0
+	gateway 10.68.2.1
 ```
 
 ### Paul
@@ -176,60 +176,49 @@ apt-get install bind9 -y
 ```
 
 ```
-echo '
-zone "atreides.it09.com" {
+echo -e "zone \"atreides.it09.com\" {
         type master;
-        file "/etc/bind/jarkom/atreides.it09.com";
+        file \"/etc/bind/jarkom/atreides.it09.com\";
 };
 
-zone "harkonen.it09.com" {
+zone \"harkonen.it09.com\" {
         type master;
-        file "/etc/bind/jarkom/harkonen.it09.com";
-};
-
-' > /etc/bind/named.conf.local
+        file \"/etc/bind/jarkom/harkonen.it09.com\";
+};" > /etc/bind/named.conf.local
 ```
 
-Membuat direktori /etc/bind/jarkom, menyalin file db.local sebagai dasar, dan membuat file konfigurasi zona untuk domain atreides.it09.com dan harkonen.it09.com di dalamnya
+Membuat direktori /etc/bind/jarkom dan membuat file konfigurasi zona untuk domain atreides.it09.com dan harkonen.it09.com di dalamnya
 
 ```
 mkdir /etc/bind/jarkom
-cp /etc/bind/db.local /etc/bind/jarkom/atreides.it09.com
 
-echo '
-;
+echo -e ";
 ; BIND data file for local loopback interface
 ;
-$TTL    604800
+\$TTL    604800
+@       IN      SOA     harkonen.it09.com. root.harkonen.it09.com. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+;
+@       IN      NS      harkonen.it09.com.
+@       IN      A       10.68.1.3" > /etc/bind/jarkom/harkonen.it09.com
+
+echo -e ";
+; BIND data file for local loopback interface
+;
+\$TTL    604800
 @       IN      SOA     atreides.it09.com. root.atreides.it09.com. (
-                        2023101001      ; Serial
+                              2         ; Serial
                          604800         ; Refresh
                           86400         ; Retry
                         2419200         ; Expire
                          604800 )       ; Negative Cache TTL
 ;
 @       IN      NS      atreides.it09.com.
-@       IN      A       10.68.2.1     ; IP Leto
-www     IN      CNAME   atreides.it09.com.' > /etc/bind/jarkom/atreides.it09.com
-
-cp /etc/bind/db.local /etc/bind/jarkom/harkonen.it09.com
-
-echo '
-; BIND data file for local loopback interface
-;
-$TTL    604800
-@       IN      SOA     harkonen.it09.com. root.harkonen.it09.com. (
-                        2023101001      ; Serial
-                         604800         ; Refresh
-                          86400         ; Retry
-                        2419200         ; Expire
-                         604800 )       ; Negative Cache TTL
-;
-@       IN      NS      harkonen.it09.com.
-@       IN      A       10.68.1.3  ; IP Fyed
-www     IN      CNAME   harkonen.it09.com.' > /etc/bind/jarkom/harkonen.it09.com
+@       IN      A       10.68.2.3" > /etc/bind/jarkom/atreides.it09.com 
 ```
-
 Restart bind9 :
 ```
 service bind9 restart
@@ -253,29 +242,35 @@ apt-get install isc-dhcp-server
 dhcpd --version
 ```
 
-Membuat konfigurasi subnet dan rentang alamat IP untuk klien di masing-masing subnet, yaitu pada Switch3 pada range '192.243.3.16' - '192.243.3.32', '192.243.3.64' - '192.243.3.80' dan Switc4 pada range '192.243.4.12' - '192.243.4.20' dan '192.243.4.160' -'192.243.4.168' sesuai dengan peritah soal. Kami juga menetapkan default-lease-time untuk Switch3 selama 3 menit sedangkan pada client yang melalui Switch4 selama 12 menit dan max-lease-time selama 96 menit, sesuai dengan perintah soal.
 
 ```
-echo 'subnet 10.68.1.0 netmask 255.255.255.0 {
+echo 'nameserver 192.168.122.1' > /etc/resolv.conf
+
+apt-get update 
+apt-get install isc-dhcp-server
+
+echo 'INTERFACESv4="eth0"' > /etc/default/isc-dhcp-server
+
+echo 'subnet 10.68.3.0 netmask 255.255.255.0 {
 }
 
-subnet 10.68.2.0 netmask 255.255.255.0 {
-}
-
-subnet 10.68.3.0 netmask 255.255.255.0 {
+# Harkonen
+subnet 10.68.1.0 netmask 255.255.255.0 {
     range 10.68.1.14 10.68.1.28;
     range 10.68.1.49 10.68.1.70;
-    option routers 10.68.3.1;
-    option domain-name-servers '10.68.3.2';
+    option routers 10.68.1.1;
+    option broadcast-address 10.68.1.255;
+    option domain-name-servers 10.68.3.2;
     default-lease-time '300';
     max-lease-time '5220';
 }
 
-subnet 10.68.4.0 netmask 255.255.255.0 {
+subnet 10.68.2.0 netmask 255.255.255.0 {
     range 10.68.2.15 10.68.2.25;
     range 10.68.2.200 10.68.2.210;
-    option routers 10.68.4.1;
-    option domain-name-servers '10.68.3.2';
+    option routers 10.68.2.1;
+    option broadcast-address 10.68.2.255;
+    option domain-name-servers 10.68.3.2;
     default-lease-time '1200';
     max-lease-time '5220';
 }
@@ -287,6 +282,7 @@ Restart dan cek status bind9
 service isc-dhcp-server restart
 service isc-dhcp-server status
 ```
+
 - DHCP Relay (Arakis)
 Mengupdate paket, menginstal ISC DHCP Relay, dan memulai layanan DHCP relay
 ```
@@ -298,9 +294,8 @@ service isc-dhcp-relay start
 Menetapkan konfigurasi DHCP relay dengan menentukan alamat IP DHCP server (Mohiam) pada SERVERS dan antarmuka yang digunakan oleh relay pada INTERFACES, sesuai dengan topologi yang dibuat.
 
 ```
-echo '
-SERVERS="10.68.3.3"
-INTERFACES="eth1 eth2 eth3 eth4"
+echo -e 'SERVERS="10.68.3.3" #IP DHCP Mohiam
+INTERFACES="eth1 eth2 eth3"
 OPTIONS=' > /etc/default/isc-dhcp-relay
 ```
 
@@ -314,6 +309,12 @@ Restart DHCP Relay
 service isc-dhcp-relay restart
 ```
 
+Output :
+- ping atreidis.it09.com
+![atrei](foto/atrei.png)
+
+- ping harkonen.it09.com
+![harkonen](foto/harkonen.jpeg)
 
 
 
