@@ -378,7 +378,7 @@ Output :
 
 - saat `wget` drive :
 
-![wget](image.png)
+![WGE](foto/6wget.png)
 
 
 - `lynx localhost` Worker PHP :
@@ -562,6 +562,10 @@ Percentage of the requests served within a certain time (ms)
 
 ![8gg](foto/8gg.png)
 
+![aloo2](foto/algo.png)
+
+Hasil analisis : [disinii](IT09_Spice.pdf)
+
 9. Dengan menggunakan algoritma Least-Connection, lakukan testing dengan menggunakan 3 worker, 2 worker, dan 1 worker sebanyak 1000 request dengan 10 request/second, kemudian tambahkan grafiknya pada peta.
 
 Jalankan command berikut pada client :
@@ -739,6 +743,10 @@ Percentage of the requests served within a certain time (ms)
 
 ![333](foto/3worker.png)
 
+- Grafik :
+
+![algoww](foto/algo2.png)
+
 10. Selanjutnya coba tambahkan keamanan dengan konfigurasi autentikasi di LB dengan dengan kombinasi username: “secmart” dan password: “kcksyyy”, dengan yyy merupakan kode kelompok. Terakhir simpan file “htpasswd” nya di /etc/nginx/supersecret/
 
 Pada Load Balancer (Stilgar), tambahkan konfigurasi autentikasi di Load Balancer dan menyimpan file htpasswd :
@@ -842,6 +850,7 @@ service nginx restart
 Output : 
 - lynx http://harkonen.it09.com/dune
 
+![dune](foto/dune.png)
 
 
 
@@ -860,4 +869,31 @@ location / {
 }
 ```
 
-Disini saya pilih pakai client Dmitri, jadi ke Dmitri baru 'ip a' :
+Tambahkan konfigurasi pada dhcp server (Mohiam) :
+```
+host Dmitri { #ini artinya pakai client Dmitri
+    hardware ethernet 86:d3:f5:63:c5:2b;
+    fixed-address 10.68.1.37;
+}
+```
+
+![86](foto/sini.png)
+
+`86:d3:f5:63:c5:2b` didapatkan dari node client (Dmitri) dengan menggunakan ip a lalu periksa yang terhubung dengan DHCP Relay (eth0)
+
+`10.68.1.37` didapatkan dengan menentukan ip 10.68.1.37 sebagai ip client (Dmitri) lalu masukan 10.68.1.379 kedalam network configuration = /etc/network/interfaces
+
+```
+auto eth0
+iface eth0 inet dhcp
+hwaddress ether 86:d3:f5:63:c5:2b
+```
+
+- IP Dmitri setelah konfigurasi:
+
+![ipa](foto/ipa.png)
+
+Output : 
+Jalankan lynx http://harkonen.it09.com/ pada node Dmitri :
+
+![ipa2](foto/ipa2.png)
