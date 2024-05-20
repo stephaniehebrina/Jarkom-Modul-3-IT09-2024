@@ -314,7 +314,7 @@ Output :
 ![atrei](foto/atrei.png)
 
 - ping harkonen.it09.com
-![harkonen](foto/harkonen.jpeg)
+![pink](foto/5e.png)
 
 # Soal 6-12
 6.  Vladimir Harkonen memerintahkan setiap worker(harkonen) PHP, untuk melakukan konfigurasi virtual host untuk website berikut dengan menggunakan php 7.3
@@ -797,6 +797,19 @@ fi
 service nginx restart
 ```
 
+Output :
+Saat dibuka akan forbidden seperti ini :
+![12a](foto/12.png)
+
+Kemudian masukkan username : 
+![12aa](foto/12a.png)
+
+Masukkan password kcksit09 :
+![ssadasd](foto/12c.png)
+
+Jika berhasil akan muncul :
+![jk](foto/12d.png)
+
 11. Lalu buat untuk setiap request yang mengandung /dune akan di proxy passing menuju halaman https://www.dunemovie.com.au/
 
 ```
@@ -897,3 +910,6 @@ Output :
 Jalankan lynx http://harkonen.it09.com/ pada node Dmitri :
 
 ![ipa2](foto/ipa2.png)
+
+Kalau dijalankan di node lain, maka akan forbidden :
+![12ril](foto/12ril.png)
