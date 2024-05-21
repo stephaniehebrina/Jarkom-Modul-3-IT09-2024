@@ -314,7 +314,7 @@ Output :
 ![atrei](foto/atrei.png)
 
 - ping harkonen.it09.com
-![pink](foto/5e.png)
+![harkonen](foto/harkonen.jpeg)
 
 # Soal 6-12
 6.  Vladimir Harkonen memerintahkan setiap worker(harkonen) PHP, untuk melakukan konfigurasi virtual host untuk website berikut dengan menggunakan php 7.3
@@ -797,19 +797,6 @@ fi
 service nginx restart
 ```
 
-Output :
-Saat dibuka akan forbidden seperti ini :
-![12a](foto/12.png)
-
-Kemudian masukkan username : 
-![12aa](foto/12a.png)
-
-Masukkan password kcksit09 :
-![ssadasd](foto/12c.png)
-
-Jika berhasil akan muncul :
-![jk](foto/12d.png)
-
 11. Lalu buat untuk setiap request yang mengandung /dune akan di proxy passing menuju halaman https://www.dunemovie.com.au/
 
 ```
@@ -911,5 +898,445 @@ Jalankan lynx http://harkonen.it09.com/ pada node Dmitri :
 
 ![ipa2](foto/ipa2.png)
 
-Kalau dijalankan di node lain, maka akan forbidden :
-![12ril](foto/12ril.png)
+# Soal 13-20
+Tidak mau kalah dalam perburuan spice, House atreides juga mengatur para pekerja di atreides.yyy.com.
+
+13. Semua data yang diperlukan, diatur pada Chani dan harus dapat diakses oleh Leto, Duncan, dan Jessica. 
+
+-  Setup Database Server (Chani)
+
+```
+echo 'nameserver 192.168.122.1' > /etc/resolv.conf
+
+apt-get update
+apt-get install mariadb-server -y
+service mysql start
+
+mysql <<EOF
+CREATE USER 'it09'@'%' IDENTIFIED BY '123456';
+CREATE USER 'it09'@'localhost' IDENTIFIED BY '123456';
+CREATE DATABASE dbkelompokit09;
+GRANT ALL PRIVILEGES ON *.* TO 'it09'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'it09'@'localhost';
+FLUSH PRIVILEGES;
+quit
+EOF
+
+# Log in to MySQL with the specified user and password
+mysql -u it09 -p'123456' <<EOF
+SHOW DATABASES;
+quit
+EOF
+
+echo '
+[client-server]
+
+[mysqld]
+skip-networking=0
+skip-bind-address' > /etc/mysql/my.cnf
+
+service mysql restart
+```
+
+Penjelasan :
+Pada kode di atas, dilakukan konfigurasi mysql dengan membuat user 'it09' dengan password '123456' serta membuat database 'dbkelompokit09'. Kemudian, dibuat akses ke database mysql dan menampilkan semua database dengan command 'SHOW DATABASES;'. Terakhir, dilakukan restart service mysql.
+
+- Setup worker laravel
+
+Menginstall dependencies yang diperlukan
+```
+apt-get update
+apt-get install mariadb-server -y
+```
+
+- Testing
+![13-1](/foto/13a.png)
+```
+mariadb --host=10.68.4.2 --port=3306 --user=it09 --password
+```
+![13-2](/foto/13b.png)
+
+14. Leto, Duncan, dan Jessica memiliki **atreides** Channel sesuai dengan quest guide. Jangan lupa melakukan instalasi PHP8.0 dan Composer
+
+Setup Laravel Worker (Leto, Duncan, Jessica)
+
+a. Instalasi dependencies yang diperlukan
+
+```
+apt-get update
+apt-get install lsb-release ca-certificates apt-transport-https software-properties-common gnupg2 -y
+```
+
+b. Unduh GPG-key dan tambahkan dengan perintah berikut
+
+```
+curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+```
+
+c. Instalasi php dan nginx
+
+```
+apt-get update
+apt-get install php8.0-mbstring php8.0-xml php8.0-cli php8.0-common php8.0-intl php8.0-opcache php8.0-readline php8.0-mysql php8.0-fpm php8.0-curl unzip wget -y
+apt-get install nginx -y
+```
+
+d. Jalankan service dari nginx dan php
+
+```
+service nginx start
+service php8.0-fpm start
+```
+
+e. Instalasi Composer 2
+
+```
+wget https://getcomposer.org/download/2.0.13/composer.phar
+chmod +x composer.phar
+mv composer.phar /usr/bin/composer
+```
+
+f. Clone repository yang akan dideploy pada directory `/var/www` dan masuk ke directory repository tersebut
+
+```
+apt-get install git -y
+cd /var/www/
+git clone https://github.com/martuafernando/laravel-praktikum-jarkom
+cd laravel-praktikum-jarkom
+```
+
+g. Jalankan composer dan buat file `.env` baru dengan command
+
+```
+composer update
+cp .env.example .env
+```
+
+dan masukkan konfigurasi berikut ke dalam file `.env`
+
+```
+DB_CONNECTION=mysql
+DB_HOST=10.68.4.2
+DB_PORT=3306
+DB_DATABASE=dbkelompokit09
+DB_USERNAME=it09
+DB_PASSWORD=123456
+```
+
+h. Jalankan konfigurasi dari php artisan
+
+```
+php artisan migrate:fresh
+php artisan db:seed --class=AiringsTableSeeder
+php artisan key:generate
+php artisan jwt:secret
+```
+
+i. Tambahkan line berikut pada file `/etc/nginx/sites-available/deployment`
+
+```
+server {
+	listen <port>;
+
+	root /var/www/laravel-praktikum-jarkom/public;
+
+	index index.php index.html index.htm;
+
+	server_name _;
+
+	location / {
+		try_files $uri $uri/ /index.php?$query_string;
+	}
+
+	location ~ \.php$ {
+		include snippets/fastcgi-php.conf;
+		fastcgi_pass unix:/var/run/php/php8.0-fpm.sock;
+	}
+
+	location ~ /\.ht {
+		deny all;
+	}
+
+	error_log /var/log/nginx/deployment_error.log;
+	access_log /var/log/nginx/deployment_access.log;
+}
+```
+
+`<port>` tersebut perlu disesuaikan lagi untuk setiap laravel worker dengan detail sebagai berikut:
+
+-   Port `8001` untuk worker **Leto**
+-   Port `8002` untuk worker **Duncan**
+-   Port `8003` untuk worker **Jessica**
+
+j. Atur symlink untuk enable pada site
+
+```
+ln -s /etc/nginx/sites-available/deployment /etc/nginx/sites-enabled/
+```
+
+k. Atur perizinan untuk mengelola dan mengakses direktori penyimpanan
+
+```
+chown -R www-data.www-data /var/www/laravel-praktikum-jarkom/storage
+```
+
+l. Jalankan service dari php-fpm dan restart service dari nginx
+
+```
+service php8.0-fpm start
+service nginx restart
+```
+
+m. Testing
+
+Testing dilakukan dengan menjalankan command berikut sesuai laravel worker
+
+-   Worker **Leto**: `lynx localhost:8001`
+-   Worker **Duncan**: `lynx localhost:8002`
+-   Worker **Jessica**: `lynx localhost:8003`
+![alt text](/foto/14.png)
+
+
+
+15. **atreides** Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada grimoire.
+
+**POST /auth/register**
+
+### Setup Client (Paul & Dmitri)
+
+a. Tambahkan line berikut pada file `/auth.json`
+
+```
+{
+    "username": "it09",
+    "password": "123456"
+}
+```
+
+### Testing
+
+```
+ab -n 100 -c 10 -p auth.json -T application/json http://atreides.it09.com:8001/api/auth/register
+```
+
+![15](/foto/15.png)
+
+16. **atreides** Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada grimoire.
+
+**POST /auth/login**
+
+### Testing
+
+```
+ab -n 100 -c 10 -p auth.json -T application/json http://atreides.it09.com:8001/api/auth/login
+```
+
+![16](/foto/16.png)
+
+17. **atreides** Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada grimoire.
+
+**GET /me**
+
+### Testing
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"username": "it09", "password": "123456"}' http://atreides.it09.com:8001/api/auth/login | jq -r '.token' > token.txt
+```
+
+Response dari request tersebut akan disimpan di token.txt.
+
+Selanjutnya, masukkan token ke variabel global dengan jq
+```bash
+token=$(cat token.txt); curl -H "Authorization: Bearer $token" http://atreides.it09.com:8001/api/me
+```
+Kemudian jalankan command testing dibawah ini
+```bash
+ab -n 100 -c 10 -H "Authorization: Bearer $token" http://atreides.it09.com:8001/api/me
+```
+![17](/foto/17.png)
+
+
+18. Untuk memastikan ketiganya bekerja sama secara adil untuk mengatur **atreides** Channel maka implementasikan Proxy Bind pada Eisen untuk mengaitkan IP dari Leto, Duncan, dan Jessica.
+
+### Setup DNS Server (Irulan)
+
+a. Mengedit konfigurasi DNS record pada `/etc/bind/it09/proxy-bind.it09.com` dengan mengarahkannya ke IP Stilgar
+
+```
+$TTL    604800
+@       IN      SOA     atreides.it09.com. atreides.it09.com. (
+                        2				; Serial
+                        604800			; Refresh
+                        86400			; Retry
+                        2419200         ; Expire
+                        604800 )		; Negative Cache TTL
+;
+@			IN      NS      atreides.it09.com.
+@			IN      A       10.68.4.3 ; IP Stilgar
+www			IN      CNAME   atreides.it09.com.
+```
+
+c. Restart service dari bind9
+
+```
+service bind9 restart
+```
+
+### Setup Load Balancer (Stilgar)
+
+a. Edit konfigurasi file `/etc/nginx/sites-available/load-balancer-it09` menjadi seperti berikut
+
+```
+upstream worker {
+	server 10.68.2.1; # IP Leto
+	server 10.68.2.2; # IP Duncan
+	server 10.68.2.3; # IP Jessica
+}
+
+server {
+	listen 80;
+
+	server_name atreides.it09.com www.atreides.it09.com;
+
+	location / {
+		proxy_pass http://worker;
+    }
+}
+```
+
+b. Restart service dari nginx
+
+```
+service nginx restart
+```
+
+### Testing
+
+```
+ab -n 100 -c 10 -p auth.json -T application/json http://atreides.it09.com/api/auth/login
+```
+
+![18](/foto/18.png)
+
+19. Untuk meningkatkan performa dari Worker, coba implementasikan PHP-FPM pada Leto, Duncan, dan Jessica. Untuk testing kinerja naikkan
+
+-   pm.max_children
+-   pm.start_servers
+-   pm.min_spare_servers
+-   pm.max_spare_servers
+    sebanyak tiga percobaan dan lakukan testing sebanyak 100 request dengan 10 request/second kemudian berikan hasil analisisnya pada PDF.
+
+### Setup Load Balancer Stilgar
+
+a. Edit konfigurasi file `/etc/nginx/sites-available/load-balancer-it09` menjadi seperti berikut
+
+```
+upstream worker {
+	server 10.68.2.2; # IP Leto
+	server 10.68.2.3; # IP Duncan
+	server 10.68.2.4; # IP Jessica
+}
+
+server {
+	listen 80;
+
+	server_name atreides.it09.com www.atreides.it09.com;
+
+	location / {
+		proxy_pass http://worker;
+    }
+}
+```
+
+b. Restart service dari nginx
+
+```
+service nginx restart
+```
+
+### Setup Laravel Worker (Leto, Duncan, Jessica)
+
+a. Tambahkan line berikut pada file `/etc/php/8.0/fpm/pool.d/loadbalancer.conf`
+
+```
+[loadbalancer]
+user = loadbalancer_user
+group = loadbalancer_user
+listen = /var/run/php8.0-fpm-loadbalancer-site.sock
+listen.owner = loadbalancer_user
+listen.group = loadbalancer_user
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+; Choose how the process manager will control the number of child processes.
+
+pm = dynamic
+pm.max_children = <value>
+pm.start_servers = <value>
+pm.min_spare_servers = <value>
+pm.max_spare_servers = <value>
+pm.process_idle_timeout = 10s
+```
+Nilai dari `<value>` tersebut diatur pada saat melakukan percobaan berikut
+
+#### Percobaan Pertama
+
+```
+pm.max_children = 10
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 5
+```
+
+![19-1](/foto/19a.png)
+
+#### Percobaan Kedua
+
+```
+pm.max_children = 30
+pm.start_servers = 5
+pm.min_spare_servers = 3
+pm.max_spare_servers = 10
+```
+
+![19-2](/foto/19b.png)
+
+#### Percobaan Ketiga
+
+```
+pm.max_children = 50
+pm.start_servers = 10
+pm.min_spare_servers = 5
+pm.max_spare_servers = 20
+```
+
+![19-3](/foto/19c.png)
+
+20. Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Stilgar. Untuk testing kinerja dari worker tersebut dilakukan sebanyak 100 request dengan 10 request/second.
+
+### Setup Load Balancer (Stilgar)
+
+a. Edit bagian `upstream worker` pada file `/etc/nginx/sites-available/load-balancer-it09` menjadi seperti berikut
+
+```
+upstream worker {
+	least_conn;
+	server 10.68.2.1; # IP Leto
+	server 10.68.2.2; # IP Duncan
+	server 10.68.2.3; # IP Jessica
+}
+```
+
+b. Restart service dari nginx
+
+```
+service nginx restart
+```
+
+### Testing
+
+```
+ab -n 100 -c 10 -p auth.json -T application/json http://atreides.it09.com/api/auth/login
+```
+
+![20](/foto/20.png)

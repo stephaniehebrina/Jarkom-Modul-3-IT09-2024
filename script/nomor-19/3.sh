@@ -19,3 +19,4 @@ pm.process_idle_timeout = 10s
 ' > /etc/php/8.0/fpm/pool.d/loadbalancer.conf
 
 service php7.3-fpm restart
+service nginx restart
